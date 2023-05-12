@@ -45,34 +45,36 @@ const convertThePromptToEnglish = async (prompt) => {
 }
 
 app.post('/whatsapp', async (req, res) => {
-  const messagingService = new MessagingResponse()
-  const incomingWhatsappMsg = req.body.Body
-  console.log('incomingWhatsappMsg', '====>', incomingWhatsappMsg)
-  const promptLanguage = await identifyPromptLanguage(incomingWhatsappMsg)
-  const promptInEnglish = await convertThePromptToEnglish(incomingWhatsappMsg)
+  try {
+    const messagingService = new MessagingResponse()
+    const incomingWhatsappMsg = req.body.Body
+    console.log('incomingWhatsappMsg', '====>', incomingWhatsappMsg)
+    const promptLanguage = await identifyPromptLanguage(incomingWhatsappMsg)
+    const promptInEnglish = await convertThePromptToEnglish(incomingWhatsappMsg)
 
-  const response = await openai.createCompletion({
-    model: 'text-davinci-003',
-    prompt: `Human: ${incomingWhatsappMsg}`,
-    temperature: 0.9,
-    max_tokens: 150,
-    top_p: 1,
-    frequency_penalty: 0.0,
-    presence_penalty: 0.6,
-    stop: [' Human:', ' AI:'],
-  })
+    const response = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt: `Human: ${incomingWhatsappMsg}`,
+      temperature: 0.9,
+      max_tokens: 150,
+      top_p: 1,
+      frequency_penalty: 0.0,
+      presence_penalty: 0.6,
+      stop: [' Human:', ' AI:'],
+    })
 
-  const messageFromBot = response.data.choices[0].text?.split(': ')[1] || ''
-  messagingService.message(
-    `${promptLanguage}: ${messageFromBot}, in English: ${promptInEnglish}`,
-  )
+    const messageFromBot = response.data.choices[0].text?.split(': ')[1] || ''
+    messagingService.message(`${messageFromBot}`)
 
-  console.log('messageFromBot', messageFromBot)
-  res.writeHead(200, { 'Content-Type': 'text/xml' })
+    console.log('messageFromBot', messageFromBot)
+    res.writeHead(200, { 'Content-Type': 'text/xml' })
 
-  console.log('Message String', messagingService.toString())
+    console.log('Message String', messagingService.toString())
 
-  res.end(messagingService.toString())
+    res.end(messagingService.toString())
+  } catch (err) {
+    console.log(err)
+  }
 })
 
 app.listen(port, () => {
