@@ -1,4 +1,6 @@
 const express = require('express')
+const axios = require('axios');
+const parse = require('pdf-parse');
 const dotEnv = require('dotenv')
 dotEnv.config({ path: '.env' })
 const { MessagingResponse } = require('twilio').twiml
@@ -48,22 +50,36 @@ app.post('/whatsapp', async (req, res) => {
   try {
     const messagingService = new MessagingResponse()
     const incomingWhatsappMsg = req.body.Body
-    console.log('incomingWhatsappMsg', '====>', incomingWhatsappMsg)
     const promptLanguage = await identifyPromptLanguage(incomingWhatsappMsg)
     const promptInEnglish = await convertThePromptToEnglish(incomingWhatsappMsg)
-
+console.log(incomingWhatsappMsg);
     const response = await openai.createCompletion({
       model: 'text-davinci-003',
-      prompt: `Human: ${incomingWhatsappMsg}`,
+      prompt: `${incomingWhatsappMsg}`,
       temperature: 0.9,
-      max_tokens: 150,
+      max_tokens: 1500,
       top_p: 1,
       frequency_penalty: 0.0,
       presence_penalty: 0.6,
-      stop: [' Human:', ' AI:'],
+    
     })
 
-    const messageFromBot = response.data.choices[0].text?.split(': ')[1] || ''
+if (req.body.NumMedia > 0) {
+  const mediaUrl = req.body.MediaUrl0; // URL for the first media file
+  const mediaContentType = req.body.MediaContentType0; // MIME type of the first media file
+
+  // Download the file
+  const response = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+
+  const data = await parse(response.data)
+  // Convert the data to a string (for text files)
+  // const fileContent = Buffer.from(response.data, 'binary').toString('utf8');
+
+  // Now you can use fileContent
+  console.log(data.text, "Type ===> ",mediaContentType);
+
+}
+    const messageFromBot = response.data.choices[0].text
     messagingService.message(`${messageFromBot}`)
 
     console.log('messageFromBot', messageFromBot)
